@@ -1,35 +1,38 @@
 #!/usr/bin/python
-# cox_usage.py
+# Version 2.0
 # Script designed to get Cox Communications internet
 # usage data into a JSON format for Home Assistant.
 #
-# Version 1.0
-# Original Author : Rick Rocklin
-# Original Date   : 10/02/2017
-#
 # 10/17/2017: Output to file
 # 11/02/2017: Updated to use mechanicalsoup
-import mechanicalsoup
+# 10/11/2019: Downgraded to use mechanicalsoup 6.0 for better intergration with https://hub.docker.com/r/homeassistant/home-assistant/
+
 import re
-import json
 import os
+import json
+import argparse
+import mechanicalsoup
 
-# URL that we authenticate against
 login_url = "https://www.cox.com/resaccount/sign-in.cox"
-# URL that we grab all the data from
 stats_url = "https://www.cox.com/internet/mydatausage.cox"
-# Your cox user account (e.g. username@cox.net) and password
-cox_user = "username"
-cox_pass = "password"
-home = os.getenv('HOME', '/home/homeassistant')
-json_file = f"{home}/.homeassistant/cox_usage.json"
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--username', help='Cox username')
+parser.add_argument('--password', help='Cox password')
+args = parser.parse_args()
+
+json_file = "/config/scripts/cox_usage.json"
+
+browser = mechanicalsoup.Browser()
+
+""" Save this for when we can use a newer version of mechanicalsoup
 # Setup browser
 browser = mechanicalsoup.StatefulBrowser(
     soup_config={'features': 'lxml'},
     user_agent='Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.2.13) Gecko/20101206 Ubuntu/10.10 (maverick) Firefox/3.6.13',
 )
-
+"""
+ 
 #Disable SSL verification workaround for issue #2
 browser.session.verify = False
 
@@ -44,7 +47,7 @@ login_form = mechanicalsoup.Form(
     login_page.soup.select_one('form[name="sign-in"]'))
 
 # Specify username and password
-login_form.input({'username': cox_user, 'password': cox_pass})
+login_form.input({'username':  args.username, 'password': args.password})
 
 # Submit the form
 browser.submit(login_form, login_page.url)

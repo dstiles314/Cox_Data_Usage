@@ -1,6 +1,6 @@
 Cox_Data_Usage
 ==============
-Python web scraper designed to return Cox Communications internet usage data for [Home Assistant](https://home-assistant.io/).
+Python web scraper designed to return Cox Communications internet usage data for [Home Assistant Docker]( https://hub.docker.com/r/homeassistant/home-assistant/).
 
 Home Assistant Card Example
 ---------
@@ -8,37 +8,30 @@ Home Assistant Card Example
 
 Configuration
 ---------
-Modify the `username` and `password` variables to match your Cox main account. Update the `json_file` variable if required.
 
-Put `cox_usage.py` somewhere inside your Home Assistant configuration directory.
+Put `/config/scripts/cox_usage.py` inside your Home Assistant.
 
-```
-cox_user = "username"
-cox_pass = "password"
-json_file = "/home/homeassistant/.homeassistant/cox_usage.json"
-```
-Automation
+automation.yaml
 -----
 ```
-automation:
   - alias: Query Cox Data Usage
-    trigger:
-      platform: time
-      minutes: '/60'
-      seconds: 00
-    action:
-      service: shell_command.query_cox_data_usage
+  trigger:
+  - at: '6:00:00'
+    platform: time
+  - at: '12:00:00'
+    platform: time
+  condition: []
+  action:
+  - service: shell_command.query_cox_data_usage
 ```
-Shell Command Component
+shell_command.yaml
 -----
 ```
-shell_command:
-  query_cox_data_usage: 'python /home/homeassistant/.homeassistant/cox_usage.py'
+query_cox_data_usage: 'python /config/scripts/cox_usage.py --username !cox_username --password !cox_password'
 ```
-Sensor Component
+sensor.yaml
 -----
 ```
-sensor:
   - platform: command_line
     command: cal -h $(date +"%m %Y") | awk 'NF {DAYS = $NF}; END {print DAYS}'
     name: Days In Current Month
@@ -46,7 +39,7 @@ sensor:
 
   - platform: file
     name: Cox Utilization
-    file_path: /home/homeassistant/.homeassistant/cox_usage.json
+    file_path: /config/scripts/cox_usage.json
     value_template: >
       {% if value_json is defined %}
         {% if value_json.dumUsage | int == 0 and value_json.dumLimit | int == 0 and value_json.dumUtilization | int == 0 %}
@@ -60,7 +53,7 @@ sensor:
 
   - platform: file
     name: Cox Time Left
-    file_path: /home/homeassistant/.homeassistant/cox_usage.json
+    file_path: /config/scripts/cox_usage.json
     value_template: >
       {% if value_json is defined %}
         {% if value_json.dumDaysLeft is defined %}
@@ -74,7 +67,7 @@ sensor:
 
   - platform: file
     name: Cox Avg GB Current
-    file_path: /home/homeassistant/.homeassistant/cox_usage.json
+    file_path: /config/scripts/cox_usage.json
     value_template: >
       {% if value_json is defined %}
         {% if value_json.dumUsage | int == 0 and value_json.dumDaysLeft | int == 0 %}
@@ -82,7 +75,7 @@ sensor:
         {% elif states.sensor.days_in_current_month.state is defined %}
           {{ (float(value_json.dumUsage) / (float(states.sensor.days_in_current_month.state) - float(value_json.dumDaysLeft))) | round(1) }} GB per day
         {% else %}
-          month_undefined
+          {{ (float(value_json.dumUsage) / (float(30.42) - float(value_json.dumDaysLeft))) | round(1) }} GB per day
         {% endif %}
       {% else %}
         undefined
@@ -90,7 +83,7 @@ sensor:
 
   - platform: file
     name: Cox Avg GB Remaining
-    file_path: /home/homeassistant/.homeassistant/cox_usage.json
+    file_path: /config/scripts/cox_usage.json
     value_template: >
       {% if value_json is defined %}
         {% if value_json.dumLimit | int == 0 and value_json.dumUsage | int == 0 and value_json.dumDaysLeft | int == 0 %}
@@ -120,8 +113,9 @@ customize:
       friendly_name: Remaining Daily Avg.
 ```
 
-Required dependencies
+secrets.yaml
 -----
 ```
-pip install MechanicalSoup
+cox_username: <your username>
+cox_password: <your password>
 ```
